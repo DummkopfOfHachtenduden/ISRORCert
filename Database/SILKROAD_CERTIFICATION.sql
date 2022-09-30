@@ -332,6 +332,8 @@ INSERT [dbo].[_ServerCord] ([nID], [nOutletID], [nInletID], [nBindType]) VALUES 
 GO
 INSERT [dbo].[_ServerCord] ([nID], [nOutletID], [nInletID], [nBindType]) VALUES (11, 10, 9, 0)
 GO
+INSERT [dbo].[_ServerCord] ([nID], [nOutletID], [nInletID], [nBindType]) VALUES (12, 8, 10, 0)
+GO
 SET IDENTITY_INSERT [dbo].[_ServerCord] OFF
 GO
 INSERT [dbo].[_ServerMachine] ([nID], [nDivisionID], [szName], [szPublicIP], [szPrivateIP]) VALUES (1, NULL, N'Certification Manager', N'127.0.0.1', N'127.0.0.1')
