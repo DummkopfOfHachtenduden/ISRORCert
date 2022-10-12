@@ -1252,17 +1252,17 @@ namespace ISRORCert.Network.SecurityApi
         }
 
         // Returns a list of all packets that are ready for processing. If no packets are available,
-        // null is returned.
+        // an empty list is returned.
         public List<Packet> TransferIncoming()
         {
             List<Packet> packets = null;
             lock (m_class_lock)
             {
-                if (m_incoming_packets.Count > 0)
-                {
-                    packets = m_incoming_packets;
-                    m_incoming_packets = new List<Packet>();
-                }
+                if (!m_incoming_packets.Any()) 
+                    return packets ?? new List<Packet>();
+                
+                packets = m_incoming_packets;
+                m_incoming_packets = new List<Packet>();
             }
             return packets;
         }
