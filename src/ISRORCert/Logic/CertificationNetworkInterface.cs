@@ -1,4 +1,6 @@
-﻿using ISRORCert.Logic.Handler;
+﻿using System.Net;
+using ISRORCert.Logic.Handler;
+using ISRORCert.Model;
 using ISRORCert.Network;
 using ISRORCert.Network.SecurityApi;
 
@@ -11,16 +13,25 @@ namespace ISRORCert.Logic
         private readonly ILogger _logger;
         private readonly PacketHandlerManager _packetHandlerManager;
         private readonly IEnumerable<IPacketHandler> _packetHandlers;
+        private readonly CertificationManager _certificationManager;
 
-        public CertificationInterface(ILogger<CertificationInterface> logger, PacketHandlerManager packetHandlerManager, IEnumerable<IPacketHandler> packetHandlers)
+        public CertificationInterface(ILogger<CertificationInterface> logger, PacketHandlerManager packetHandlerManager, IEnumerable<IPacketHandler> packetHandlers, CertificationManager certificationManager)
         {
             _logger = logger;
             _packetHandlerManager = packetHandlerManager;
             _packetHandlers = packetHandlers;
+            _certificationManager = certificationManager;
         }
 
         public bool OnConnect(AsyncContext context)
         {
+            var clientAddress = ((IPEndPoint)context.State.EndPoint).Address.ToString();
+            if (!_certificationManager.ServerMachines.Any(sm => clientAddress == sm.PublicIP || clientAddress == sm.PrivateIP))
+            {
+                _logger.LogCritical($"Malicious connection attempt from: {clientAddress}");
+                return false;
+            }
+            
             context.Connected = true;
             _logger.LogInformation($"Connected: {context.Guid}");
             return true;
