@@ -25,15 +25,18 @@ namespace ISRORCert.Logic
 
         public bool OnConnect(AsyncContext context)
         {
-            var clientAddress = ((IPEndPoint)context.State.EndPoint).Address.ToString();
-            if (!_certificationManager.ServerMachines.Any(sm => clientAddress == sm.PublicIP || clientAddress == sm.PrivateIP))
+            if (context?.State?.EndPoint is not IPEndPoint ipEndPoint)
+                return false;
+
+            var clientAddress = ipEndPoint.Address;
+            if (!_certificationManager.ServerMachines.Any(p => clientAddress.Equals(p.PublicIPAddress) || clientAddress.Equals(p.PrivateIPAddress)))
             {
-                _logger.LogCritical($"Malicious connection attempt from: {clientAddress}");
+                _logger.LogCritical("Blocked a connection attempt from {clientAddress}!", clientAddress);
                 return false;
             }
-            
+
             context.Connected = true;
-            _logger.LogInformation($"Connected: {context.Guid}");
+            _logger.LogInformation("Connected: {guid}", context.Guid);
             return true;
         }
 

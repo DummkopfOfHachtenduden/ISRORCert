@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Net;
 
 namespace ISRORCert.Model
 {
@@ -56,17 +57,26 @@ namespace ISRORCert.Model
             _certificationSerializer = certificationSerializer;
         }
 
-        public async Task RefreshAsync(CancellationToken cancellationToken = default)
+        public async Task<bool> RefreshAsync(CancellationToken cancellationToken = default)
         {
-            await _adapter.GetDataTableAsync(_contentList, "_GetContentList", cancellationToken);
-            await _adapter.GetDataTableAsync(_moduleList, "_GetModuleList", cancellationToken);
-            await _adapter.GetDataTableAsync(_divisionList, "_GetDivisionList", cancellationToken);
-            await _adapter.GetDataTableAsync(_farmList, "_GetFarmList", cancellationToken);
-            await _adapter.GetDataTableAsync(_farmContentList, "_GetFarmContentList", cancellationToken);
-            await _adapter.GetDataTableAsync(_shardList, "_GetShardList", cancellationToken);
-            await _adapter.GetDataTableAsync(_serverMachineList, "_GetServerMachineList", cancellationToken);
-            await _adapter.GetDataTableAsync(_serverBodyList, "_GetServerBodyList", cancellationToken);
-            await _adapter.GetDataTableAsync(_serverCordList, "_GetServerCordList", cancellationToken);
+            _logger.LogInformation("Querying certification data...");
+
+            var results = await Task.WhenAll(
+                _adapter.GetDataTableAsync(_contentList, "_GetContentList", cancellationToken),
+                _adapter.GetDataTableAsync(_moduleList, "_GetModuleList", cancellationToken),
+                _adapter.GetDataTableAsync(_divisionList, "_GetDivisionList", cancellationToken),
+                _adapter.GetDataTableAsync(_farmList, "_GetFarmList", cancellationToken),
+                _adapter.GetDataTableAsync(_farmContentList, "_GetFarmContentList", cancellationToken),
+                _adapter.GetDataTableAsync(_shardList, "_GetShardList", cancellationToken),
+                _adapter.GetDataTableAsync(_serverMachineList, "_GetServerMachineList", cancellationToken),
+                _adapter.GetDataTableAsync(_serverBodyList, "_GetServerBodyList", cancellationToken),
+                _adapter.GetDataTableAsync(_serverCordList, "_GetServerCordList", cancellationToken));
+
+            if(results.Any(p => p == false))
+            {
+                _logger.LogCritical("Failed to query certification data...");
+                return false;
+            }
 
             _contentByID = _contentList.ToDictionary(p => p.Id);
             _moduleByID = _moduleList.ToDictionary(p => p.Id);
@@ -83,14 +93,14 @@ namespace ISRORCert.Model
             if (!_moduleByName.TryGetValue("Certification", out var certificationModule))
             {
                 _logger.LogCritical("Failed to find Certification module");
-                return;
+                return false;
             }
 
             var certificationBody = _serverBodyList.SingleOrDefault(p => p.ModuleID == certificationModule.Id);
             if (certificationBody == null)
             {
                 _logger.LogCritical("Failed to find Certification serverBody");
-                return;
+                return false;
             }
 
             Identity = certificationBody;
@@ -98,7 +108,9 @@ namespace ISRORCert.Model
             _logger.LogInformation("Certification successfully refreshed");
 
             Print(0, Identity);
+            return true;
         }
+
         private void Print(int indent, ServerBody body)
         {
             var prefix = new string(' ', indent);
@@ -140,13 +152,13 @@ namespace ISRORCert.Model
                 item.Certifier = certifier;
 
                 // ServerMachine
-                if (!_serverMachineByID.TryGetValue(item.MachineID, out ServerMachine? machine))
+                if (!_serverMachineByID.TryGetValue(item.MachineID, out var machine))
                     _logger.LogError($"Cannot find {nameof(ServerMachine)}#{item.MachineID} for {nameof(ServerBody)}#{item.ID}");
 
                 item.Machine = machine;
 
                 // Module
-                if (!_moduleByID.TryGetValue(item.ModuleID, out Module? module))
+                if (!_moduleByID.TryGetValue(item.ModuleID, out var module))
                     _logger.LogError($"Cannot find {nameof(Module)}#{item.ModuleID} for {nameof(ServerBody)}#{item.ID}");
 
                 item.Module = module;
@@ -155,13 +167,13 @@ namespace ISRORCert.Model
             foreach (var item in _serverCordList)
             {
                 // Outlet
-                if (!_serverBodyByID.TryGetValue(item.OutletID, out ServerBody? outlet))
+                if (!_serverBodyByID.TryGetValue(item.OutletID, out var outlet))
                     _logger.LogError($"Cannot find Outlet#{item.OutletID} for {nameof(ServerCord)}#{item.ID}");
 
                 item.Outlet = outlet;
 
                 // Inlet
-                if (!_serverBodyByID.TryGetValue(item.InletID, out ServerBody? inlet))
+                if (!_serverBodyByID.TryGetValue(item.InletID, out var inlet))
                     _logger.LogError($"Cannot find Inlet#{item.InletID} for {nameof(ServerCord)}#{item.ID}");
 
                 item.Inlet = inlet;
@@ -180,13 +192,13 @@ namespace ISRORCert.Model
             foreach (var item in _farmContentList)
             {
                 // Farm
-                if (!_farmByID.TryGetValue(item.FarmID, out Farm? farm))
+                if (!_farmByID.TryGetValue(item.FarmID, out var farm))
                     _logger.LogError($"Cannot find {nameof(Farm)}#{item.FarmID} for {nameof(FarmContent)}#{item.ID}");
 
                 item.Farm = farm;
 
                 // Content
-                if (!_contentByID.TryGetValue(item.ContentID, out Content? content))
+                if (!_contentByID.TryGetValue(item.ContentID, out var content))
                     _logger.LogError($"Cannot find {nameof(Content)}#{item.ContentID} for {nameof(FarmContent)}#{item.ID}");
 
                 item.Content = content;
@@ -195,13 +207,13 @@ namespace ISRORCert.Model
             foreach (var item in _shardList)
             {
                 // Farm
-                if (!_farmByID.TryGetValue(item.FarmID, out Farm? farm))
+                if (!_farmByID.TryGetValue(item.FarmID, out var farm))
                     _logger.LogError($"Cannot find {nameof(Farm)}#{item.FarmID} for {nameof(Shard)}#{item.ID}");
 
                 item.Farm = farm;
 
                 // Content
-                if (!_contentByID.TryGetValue(item.ContentID, out Content? content))
+                if (!_contentByID.TryGetValue(item.ContentID, out var content))
                     _logger.LogError($"Cannot find {nameof(Content)}#{item.ContentID} for {nameof(Shard)}#{item.ID}");
 
                 item.Content = content;
@@ -215,18 +227,32 @@ namespace ISRORCert.Model
                     _logger.LogError($"Cannot find {nameof(Division)}#{item.DivisionID} for {nameof(ServerMachine)}#{item.Id}");
 
                 item.Division = division;
+
+                if (!IPAddress.TryParse(item.PublicIP, out var publicAddress))
+                {
+                    if(_logger.IsEnabled(LogLevel.Error))
+                        _logger.LogError($"Failed to parse {nameof(item.PublicIP)} for {nameof(ServerMachine)}#{item.Id}.");
+                }
+                item.PublicIPAddress = publicAddress;
+
+                if (!IPAddress.TryParse(item.PrivateIP, out var privateAddress))
+                {
+                    if(_logger.IsEnabled(LogLevel.Error))
+                        _logger.LogError($"Failed to parse {nameof(item.PrivateIP)} for {nameof(ServerMachine)}#{item.Id}.");
+                }
+                item.PrivateIPAddress = privateAddress;
             }
 
-            if (!TryGetModule("GlobalManager", out Module? globalModule))
+            if (!TryGetModule("GlobalManager", out var globalModule))
                 _logger.LogCritical("Cannot find GlobalManager module");
 
-            if (!TryGetModule("MachineManager", out Module? machineModule))
+            if (!TryGetModule("MachineManager", out var machineModule))
                 _logger.LogCritical("Cannot find MachineManager module");
 
-            if (!TryGetModule("FarmManager", out Module? farmModule))
+            if (!TryGetModule("FarmManager", out var farmModule))
                 _logger.LogCritical("Cannot find FarmManager module");
 
-            if (!TryGetModule("SR_ShardManager", out Module? shardModule))
+            if (!TryGetModule("SR_ShardManager", out var shardModule))
                 _logger.LogCritical("Cannot find ShardManager module");
 
             foreach (var item in _serverBodyList)

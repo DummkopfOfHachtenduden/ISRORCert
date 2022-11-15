@@ -19,7 +19,12 @@ namespace ISRORCert.Services
         private readonly CertificationManager _certificationManager;
         private readonly IDbAdapter _adapter;
 
-        public CertificationService(ILogger<CertificationService> logger, IOptions<CertificationConfig> options, IAsyncInterface serverInterface, AsyncServer server, CertificationManager certificationManager, IDbAdapter adapter)
+        public CertificationService(ILogger<CertificationService> logger,
+                                    IOptions<CertificationConfig> options,
+                                    IAsyncInterface serverInterface,
+                                    AsyncServer server,
+                                    CertificationManager certificationManager,
+                                    IDbAdapter adapter)
         {
             _logger = logger;
             _options = options;
@@ -32,7 +37,9 @@ namespace ISRORCert.Services
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             _adapter.ConnectionString = _options.Value.DbConfig;
-            await _certificationManager.RefreshAsync(cancellationToken);
+            if (!await _certificationManager.RefreshAsync(cancellationToken))
+                return;
+
             CreateListener();
         }
 
@@ -42,7 +49,9 @@ namespace ISRORCert.Services
 
             var host = _certificationManager.Identity.Machine.PublicIP;
             var port = _certificationManager.Identity.ListenerPort;
+
             _server.Accept(host, port, 128, _serverInterface);
+            _logger.LogInformation("Listening on {host}:{port}", host, port);
         }
 
         public Task StopAsync(CancellationToken cancellationToken)

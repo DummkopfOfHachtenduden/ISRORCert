@@ -15,19 +15,18 @@ namespace ISRORCert.Network
         private byte[] m_read_buffer;
 
         private Queue<AsyncBuffer> m_write_buffers;
-        private AsyncBuffer m_current_write_buffer;
-
-        private AsyncOperation m_operation;
+        private AsyncBuffer? m_current_write_buffer;
 
         public AsyncContext Context { get; set; }
-        public AsyncOperation Operation { get { return m_operation; } }
-        public EndPoint EndPoint { get { return m_socket.RemoteEndPoint; } }
+        public AsyncOperation Operation { get; }
+
+        public EndPoint? EndPoint => m_socket?.RemoteEndPoint;
 
         public AsyncState(AsyncBase server, Socket socket, AsyncOperation operation, IAsyncInterface @interface)
         {
             m_server = server;
             m_socket = socket;
-            m_operation = operation;
+            Operation = operation;
 
             m_current_write_buffer = null;
 
@@ -44,9 +43,11 @@ namespace ISRORCert.Network
 
             m_write_buffers = new Queue<AsyncBuffer>();
 
-            Context = new AsyncContext();
-            Context.State = this;
-            Context.Interface = @interface;
+            Context = new AsyncContext
+            {
+                State = this,
+                Interface = @interface,
+            };
         }
 
         internal void Disconnect()
@@ -73,7 +74,7 @@ namespace ISRORCert.Network
             catch (Exception) { }
         }
 
-        private void OnIO(object sender, SocketAsyncEventArgs e)
+        private void OnIO(object? sender, SocketAsyncEventArgs e)
         {
             switch (e.LastOperation)
             {

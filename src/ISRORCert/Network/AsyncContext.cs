@@ -6,17 +6,15 @@ namespace ISRORCert.Network
 {
     public class AsyncContext
     {
-        public AsyncState State { get; set; }
-        public Guid Guid { get { return guid; } }
+        public AsyncState State { get; init; }
+        public Guid Guid { get; }
         public IAsyncInterface Interface { get; set; }
         public Security Security { get; set; }
         public bool Connected { get; set; }
 
-        private Guid guid;
-
         public AsyncContext()
         {
-            guid = Guid.NewGuid();
+            Guid = Guid.NewGuid();
             Security = new Security();
             Security.ChangeIdentity("Certification", 0);
             Security.GenerateSecurity(true, true, true);
@@ -25,6 +23,11 @@ namespace ISRORCert.Network
         public void Disconnect()
         {
             State.Disconnect();
+        }
+
+        public void Send(Packet packet)
+        {
+            Security.Send(packet);
         }
 
         public void Send(byte[] buffer)

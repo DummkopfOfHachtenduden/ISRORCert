@@ -1,6 +1,7 @@
 ﻿using ISRORCert.Database;
 
 using System.Data.Common;
+using System.Net;
 
 namespace ISRORCert.Model
 {
@@ -9,8 +10,13 @@ namespace ISRORCert.Model
         public int Id { get; set; }
         public byte? DivisionID { get; set; }
         public string Name { get; set; } = "";
+
         public string PublicIP { get; set; } = "";
+        public IPAddress? PublicIPAddress { get; set; }
+
         public string PrivateIP { get; set; } = "";
+        public IPAddress? PrivateIPAddress { get; set; }
+
         public short ManagerBodyID { get; set; }
 
         public Division? Division { get; set; }
@@ -25,6 +31,8 @@ namespace ISRORCert.Model
         }
 
         public string GetIP(ServerCordBindType bindType) => bindType == ServerCordBindType.Public ? PublicIP : PrivateIP;
+
+        public IPAddress GetIPAddress(ServerCordBindType bindType) => bindType == ServerCordBindType.Public ? PublicIPAddress : PrivateIPAddress;
 
 
     }
